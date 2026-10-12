@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap');
-
 :root {
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
   color: #202b38;
   background: #f4f6f8;
   font-synthesis: none;
@@ -75,7 +73,7 @@ input:focus-visible {
 .page-header h1 {
   margin: 0;
   color: var(--color-foreground);
-  font-family: Manrope, 'DM Sans', sans-serif;
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
   font-size: clamp(2rem, 7vw, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.055em;
@@ -149,7 +147,7 @@ input:focus-visible {
 
 .list-heading-row h2 {
   margin: 0;
-  font-family: Manrope, 'DM Sans', sans-serif;
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.02em;

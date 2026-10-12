@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.jsx';
 
 const STORAGE_KEY = 'quicktask.tasks.v1';
@@ -123,6 +123,66 @@ describe('QuickTask task lifecycle', () => {
     expect(screen.getByRole('checkbox', { name: 'Saved task' })).toBeChecked();
     expect(screen.getByText('1 total')).toBeInTheDocument();
     expect(screen.getByText('1 completed')).toBeInTheDocument();
+  });
+
+  it('renders markup-like task text as inert text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByRole('textbox', { name: 'Enter a task' });
+    const markupLikeText = '<img src=x onerror=alert(1)>';
+
+    await user.type(input, markupLikeText);
+    await user.click(screen.getByRole('button', { name: 'Add Task' }));
+
+    expect(screen.getByText(markupLikeText)).toBeInTheDocument();
+    expect(document.querySelector('img')).not.toBeInTheDocument();
+  });
+
+  it('accepts a large task string and renders the complete text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByRole('textbox', { name: 'Enter a task' });
+    const largeTask = 'A'.repeat(5000);
+
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, largeTask);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await user.click(screen.getByRole('button', { name: 'Add Task' }));
+
+    expect(screen.getByText(largeTask)).toBeInTheDocument();
+    expect(screen.getByText('1 total')).toBeInTheDocument();
+  });
+
+  it('treats non-array saved data as an empty task list', () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: 'not-a-list' }));
+
+    render(<App />);
+
+    expect(screen.getByText('No tasks yet. Add your first task!')).toBeInTheDocument();
+    expect(screen.getByText('0 total')).toBeInTheDocument();
+  });
+
+  it('remains usable when browser storage reads and writes throw', async () => {
+    const user = userEvent.setup();
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function getStoredItem(key) {
+      if (key === STORAGE_KEY) throw new DOMException('Storage unavailable', 'SecurityError');
+      return null;
+    });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function setStoredItem(key) {
+      if (key === STORAGE_KEY) throw new DOMException('Storage unavailable', 'QuotaExceededError');
+    });
+
+    render(<App />);
+    expect(screen.getByText('No tasks yet. Add your first task!')).toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: 'Enter a task' });
+    await user.type(input, 'Available for this session{Enter}');
+
+    expect(screen.getByText('Available for this session')).toBeInTheDocument();
+    expect(screen.getByText('1 total')).toBeInTheDocument();
+    getItem.mockRestore();
+    setItem.mockRestore();
   });
 
   it('ignores malformed and invalid saved task data without crashing', () => {
